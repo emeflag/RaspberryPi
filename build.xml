@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project basedir="." default="build" name="JavaProject">
+
+	<!--
+	This build.xml file is used to compile and build a java package for a raspberry pi
+		
+	The development environment uses eclipse on a MAC OS computer.
+		
+	A java.jar file is created containg all the classes within a project.
+	It is then transferred to a rasperry pi computer. The program is run via 
+	the the raspberry pi. The transfered jar file can then be executed on the pi
+	such as: >java -cp MyJar.jar package.myMainClass
+		
+	The script assumes a ssh key passphrase has already been set up
+	so that a password is not required for the "scp" command.
+	-->
+	
+    <property environment="env"/>
+	
+	<!-- Create tailor-made properties for the build file-->	
+	<property name="raspberryurl" 	value="pi04.local" 	description="raspberry pi computer name on local netword"/>
+	<property name="remotedir" 		value="~/java/" 	description="directory location to transver executable jar file"/>
+	<property name="jarfile" 		value="RaspberryPi" description="name of jar file"/>
+	<property name="packagename" 	value="eric" 		description="name of package for the application"/>
+
+	<!-- Other properties -->
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="target" value="1.8"/>
+    <property name="source" value="1.8"/>
+	
+	<echo>----------------</echo>
+	<echo>My Property Names</echo>
+	<echo>----------------</echo>
+	<echo>raspberryurl:     ${raspberryurl}</echo>
+	<echo>remotedir:        ${remotedir}</echo>
+	<echo>jarfile:          ${jarfile}</echo>
+	<echo>packagename:      ${packagename}</echo>
+		
+	<echo>-------------------</echo>
+	<echo>Other Property Names</echo>
+	<echo>-------------------</echo>
+	<echo>debuglevel:       ${debuglevel}</echo>
+	<echo>target:           ${target}</echo>
+	<echo>source:           ${source}</echo>
+	<echo>ant project name: ${ant.project.name}</echo>
+	
+	<!-- Here is the location of the classpath -->
+    <path id="JavaProject.classpath">
+        <pathelement location="bin"/>
+    </path>
+
+	<!-- initialize step -->
+    <target name="init">
+    	<echo>Begin the init step</echo>
+        <mkdir dir="bin"/>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="src">
+                <exclude name="**/*.launch"/>
+                <exclude name="**/*.java"/>
+            </fileset>
+        </copy>
+    </target>
+	
+	<!-- clleasn step -->
+    <target name="clean">
+    	<echo>Begin the clean step</echo>
+        <delete dir="bin"/>
+    </target>
+	
+	<!-- place holder for clean all -->
+	<target depends="clean" name="cleanall">
+		<echo>Begin the cleanall step</echo>
+	</target>
+    
+	<!-- begin the build process -->
+	<target depends="build-subprojects,build-project,makejar,copytopi" name="build">
+		<echo>Ending build steps</echo>
+	</target>
+    
+	<!-- place holder for building subprojects -->
+	<target name="build-subprojects">
+		<echo>Begin the build-subprojects step</echo>
+	</target>
+    
+	<!-- java compile the various classes -->
+	<target depends="init" name="build-project">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" includeantruntime="false" source="${source}" target="${target}">
+            <src path="src"/>
+            <classpath refid="JavaProject.classpath"/>
+        </javac>
+    </target>
+	
+	<!-- place holder for building all projects that reference this project -->
+	<target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects">
+		<echo>Begin the build-refprojects step</echo>
+	</target>
+	
+	<!-- not sure what this does -->
+    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
+        <copy todir="${ant.library.dir}">
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </copy>
+        <unzip dest="${ant.library.dir}">
+            <patternset includes="jdtCompilerAdapter.jar"/>
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </unzip>
+    </target>
+    
+	<!-- not sure what this does -->
+	<target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
+        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+        <antcall target="build"/>
+    </target>
+	
+	<!-- Create the jar file for the project -->
+	<target name ="makejar" description="Create a jar for the ${javaproject} project">
+		<echo>Begin makejar step</echo>
+		<echo>Name of created jar file: ${jarfile}.jar</echo>
+		   <jar  jarfile="${jarfile}.jar" includes="**" basedir="bin"/>   		
+	</target>
+		
+	<!-- copy the jar file to the raspberry pi and we're done -->
+	<target name="copytopi" description="Copy the jar file to the raspberry pi">
+		<echo>Copy the jar file to the raspberry pi</echo>
+		<echo>Destination raspberry pi: ${raspberryurl}</echo>
+		<echo>Destination directory: ${remotedir}</echo>
+			
+		<exec  executable="/usr/bin/scp"> 
+			<arg value="${jarfile}.jar" />
+			<arg value="${raspberryurl}:${remotedir}" />
+		</exec>
+		
+		
+		
+	   </target>
+    
+</project>
